@@ -5,7 +5,7 @@ class Lexer:
     class Token:
         def __init__(self, name: str, pattern: str):
             self.name = name
-            self.pattern = pattern
+            self.pattern = r"^" + pattern
 
     class TokenMatch:
         def __init__(self, token: "Lexer.Token", value: str, line: int, col: int):
@@ -47,9 +47,7 @@ class Lexer:
 
             while self.line_rem:
                 for token in self.tokens:
-                    pattern = r"^" + token.pattern
-
-                    match = re.match(pattern, self.line_rem)
+                    match = re.match(token.pattern, self.line_rem)
 
                     if match:
                         self.line_rem = self.line_rem[match.end() :]
@@ -68,7 +66,7 @@ class Lexer:
     def print_sequence(self) -> None:
         line_width = max([len(str(token_match.line)) for token_match in self.sequence])
         col_width = max([len(str(token_match.col)) for token_match in self.sequence])
-        token_width = max([len(token_match.token.name) for token_match in self.sequence])
+        token_width = max([len(token_match.value) for token_match in self.sequence])
 
         for token_match in self.sequence:
             l = token_match.line
