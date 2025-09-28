@@ -4,23 +4,61 @@
 #include <iterator>
 #include <optional>
 #include <regex>
+#include <sstream>
 #include <vector>
 
 #include "token.hpp"
 
+/**
+ * @brief A generic, regular-expression-based lexical analyzer.
+ *
+ * This class transforms a string of text into a stream of tokens based on a
+ * set of provided token definitions. It supports both eager tokenization into a
+ * vector and lazy, stream-based tokenization via iterators.
+ *
+ * @tparam TokenType The enum type used for classifying tokens.
+ */
 template <typename TokenType>
 class Lexer
 {
   public:
+    /**
+     * @brief Constructs an empty, unconfigured lexer.
+     */
     Lexer();
+
+    /**
+     * @brief Constructs a lexer pre-configured with token definitions.
+     *
+     * @param definitions A vector of TokenDefinition objects that define the
+     * lexer's behavior.
+     */
     Lexer(std::vector<TokenDefinition<TokenType>> definitions);
     ~Lexer();
 
+    /**
+     * @brief Eagerly tokenizes the entire input string into a vector of tokens.
+     *
+     * @param input The string to tokenize.
+     * @return A vector containing all identified tokens.
+     */
     std::vector<Token<TokenType>> tokenize(const std::string& input);
+
+    /**
+     * @brief Overload for C-style string literals.
+     */
     std::vector<Token<TokenType>> tokenize(const char* input)
     {
         return tokenize(std::string(input));
     }
+
+    /**
+     * @brief Eagerly tokenizes the entire content of a file into a vector of
+     * tokens.
+     *
+     * @param filepath The path to the file to tokenize.
+     * @return A vector containing all identified tokens.
+     */
     std::vector<Token<TokenType>> tokenize_file(const char* filepath)
     {
         std::ifstream file(filepath);
@@ -31,6 +69,12 @@ class Lexer
         return tokenize(buffer.str());
     }
 
+    /**
+     * @brief An input iterator for traversing tokens in a stream.
+     *
+     * This class allows for lazy evaluation of the input source, producing
+     * tokens one by one as it is incremented.
+     */
     class Iterator
     {
       public:
@@ -78,6 +122,9 @@ class Lexer
         }
 
       private:
+        /**
+         * @brief Fetches the next token from the lexer.
+         */
         void advance()
         {
             if (m_lexer)
@@ -93,6 +140,12 @@ class Lexer
         std::optional<value_t> m_current;
     };
 
+    /**
+     * @brief A lightweight wrapper that provides a range for token iteration.
+     *
+     * This class is designed to be used with a range-based for loop to
+     * iterate through the tokens of a source string lazily.
+     */
     class TokenStream
     {
       public:
@@ -107,6 +160,13 @@ class Lexer
         Lexer& m_lexer;
     };
 
+    /**
+     * @brief Prepares the lexer and returns a TokenStream for the given
+     * content.
+     *
+     * @param content The source string to be tokenized.
+     * @return A TokenStream object for lazy iteration.
+     */
     TokenStream stream(const std::string& content)
     {
         m_content = content;
@@ -117,6 +177,12 @@ class Lexer
         return TokenStream(*this);
     }
 
+    /**
+     * @brief Prepares the lexer and returns a TokenStream for the given file.
+     *
+     * @param filepath The path to the source file to be tokenized.
+     * @return A TokenStream object for lazy iteration.
+     */
     TokenStream stream_from_file(const std::string& filepath)
     {
         std::ifstream file(filepath);
@@ -128,14 +194,29 @@ class Lexer
     }
 
   private:
+    /// @brief The set of rules for identifying tokens.
     std::vector<TokenDefinition<TokenType>> m_definitions;
+    /// @brief The input string being tokenized.
     std::string m_content;
+    /// @brief The current line number in the input string.
     size_t m_current_line_num;
+    /// @brief The current column number on the current line.
     size_t m_current_col_num;
+    /// @brief An iterator pointing to the current position in the input string.
     std::string::const_iterator m_contentIt;
 
+    /**
+     * @brief Handles and reports an unexpected token error.
+     * @param line_num The line number of the error.
+     * @param col_num The column number of the error.
+     */
     void unexpected_token(int line_num, int col_num);
 
+    /**
+     * @brief Scans the input string for the next valid token.
+     * @return An optional containing the next token, or std::nullopt if the
+     * end is reached.
+     */
     std::optional<Token<TokenType>> next_token();
 };
 
@@ -226,65 +307,8 @@ Lexer<TokenType>::tokenize(const std::string& input)
 {
     std::vector<Token<TokenType>> tokens;
 
-    // Use a stringstrem to iterate the content line by line
-    std::istringstream input_stream(input);
-
-    // Track the line and column number for error messages
-    std::string line;
-    int line_num = 1;
-
-    while (std::getline(input_stream, line))
-    {
-        // Used to iterate a line
-        std::string::const_iterator contentIt = line.cbegin();
-
-        int col_num = 1;
-
-        while (contentIt != line.cend())
-        {
-            std::smatch bestMatch;
-            const TokenDefinition<TokenType>* bestDefinition = nullptr;
-
-            for (const auto& definition : m_definitions)
-            {
-                std::smatch match;
-                auto regex = definition.regex;
-
-                if (!std::regex_search(contentIt, line.cend(), match, regex,
-                                       std::regex_constants::match_continuous))
-                    continue;
-
-                if (!bestDefinition || match.length() > bestMatch.length())
-                {
-                    bestMatch = match;
-                    bestDefinition = &definition;
-                }
-            }
-
-            if (bestMatch.empty())
-            {
-                unexpected_token(line_num, col_num);
-                return {};
-            }
-
-            auto lexeme = bestMatch.str();
-
-            contentIt += lexeme.size();
-            col_num += lexeme.size();
-
-            if (bestDefinition->discard)
-                continue;
-
-            tokens.push_back({
-                .type = bestDefinition->type,
-                .lexeme = lexeme,
-                .line = 0,
-                .column = 0,
-            });
-        }
-
-        line_num++;
-    }
+    for (const auto& token : stream(input))
+        tokens.push_back(token);
 
     return tokens;
 }

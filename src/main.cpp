@@ -86,5 +86,10 @@ int main()
     for (const auto& token : lexer.stream_from_file("res/input.txt"))
         std::cout << token << std::endl;
 
+    auto tokens = lexer.tokenize_file("res/input.txt");
+
+    for (const auto& token : tokens)
+        std::cout << token << std::endl;
+
     return 0;
 }
