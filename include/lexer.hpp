@@ -139,7 +139,11 @@ void Lexer<TokenType>::define_token(const TokenType type,
                                     const std::string& regex,
                                     bool discard)
 {
-    m_definitions.push_back(TokenDefinition<TokenType>(type, regex, discard));
+    m_definitions.push_back({
+        .type = type,
+        .regex = std::regex(regex),
+        .discard = discard,
+    });
 }
 
 template <typename TokenType>
@@ -191,8 +195,12 @@ std::optional<Token<TokenType>> Lexer<TokenType>::next_token()
     if (bestDefinition->discard)
         return next_token();
 
-    Token<TokenType> token(bestDefinition->type, lexeme, m_current_line_num,
-                           m_current_col_num);
+    Token<TokenType> token = {
+        .type = bestDefinition->type,
+        .lexeme = lexeme,
+        .line = m_current_line_num,
+        .column = m_current_col_num,
+    };
 
     return token;
 }
@@ -252,8 +260,12 @@ Lexer<TokenType>::tokenize(const std::string& input)
             if (bestDefinition->discard)
                 continue;
 
-            tokens.push_back(
-                Token<TokenType>(bestDefinition->type, lexeme, 0, 0));
+            tokens.push_back({
+                .type = bestDefinition->type,
+                .lexeme = lexeme,
+                .line = 0,
+                .column = 0,
+            });
         }
 
         line_num++;
