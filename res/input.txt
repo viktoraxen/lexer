@@ -1,0 +1,25 @@
+#include <string>
+
+int main(int argc, char* argv[]) {
+int i = 0;
+float f = 10.5;
+char c = 'A';
+string s = "Hello World";
+
+// Example usage of operators and types
+if (i == 0) {
+    float result = f + 5.0;
+
+    // Use stream operators and scope resolution
+    std::cout << "The result is: " << result << std::endl;
+
+    int array[10];
+    array[i] = 42;
+
+    int pointer_i = &i; // Use ampersand
+    bool not_equal = !(i == 1); // Use exclamation
+}
+
+return 0;
+
+}

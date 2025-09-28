@@ -1,5 +1,10 @@
+#pragma once
+
+#include <ostream>
 #include <regex>
 #include <string>
+
+#include "magic_enum/magic_enum.hpp"
 
 enum class TokenConsumeMode
 {
@@ -7,7 +12,8 @@ enum class TokenConsumeMode
     Discard,
 };
 
-template <typename TokenType> struct Token
+template <typename TokenType>
+struct Token
 {
     Token() = default;
     Token(TokenType type, const std::string& lexeme, int line, int column)
@@ -15,24 +21,32 @@ template <typename TokenType> struct Token
         , lexeme(lexeme)
         , line(line)
         , column(column)
-    {
-    }
+    {}
     TokenType type;
     std::string lexeme;
     int line, column;
 };
 
-template <typename TokenType> struct TokenDefinition
+template <typename TokenType>
+std::ostream& operator<<(std::ostream& os, const Token<TokenType>& token)
+{
+    os << "Token(type: " << magic_enum::enum_name(token.type) << ", lexeme: '"
+       << token.lexeme << "', line: " << token.line
+       << ", column: " << token.column << ")";
+    return os;
+}
+
+template <typename TokenType>
+struct TokenDefinition
 {
     TokenDefinition(TokenType type,
                     const std::string& regex,
-                    TokenConsumeMode consume_mode)
+                    bool discard = false)
         : type(type)
         , regex(regex)
-        , consume_mode(consume_mode)
-    {
-    }
+        , discard(discard)
+    {}
     TokenType type;
     std::regex regex;
-    TokenConsumeMode consume_mode;
+    bool discard;
 };

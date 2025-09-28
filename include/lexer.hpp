@@ -7,7 +7,8 @@
 
 #include "token.hpp"
 
-template <typename TokenType> class Lexer
+template <typename TokenType>
+class Lexer
 {
   public:
     Lexer();
@@ -21,10 +22,9 @@ template <typename TokenType> class Lexer
 
     std::optional<Token<TokenType>> next_token();
 
-    void
-    define_token(TokenType type,
-                 const std::string& regex,
-                 TokenConsumeMode consume_mode = TokenConsumeMode::Consume);
+    void define_token(TokenType type,
+                      const std::string& regex,
+                      bool discard = false);
 
     class Iterator
     {
@@ -43,8 +43,7 @@ template <typename TokenType> class Lexer
 
         Iterator()
             : m_lexer(nullptr)
-        {
-        }
+        {}
 
         token_r operator*() const { return *m_current; }
         token_p operator->() const { return &(*m_current); }
@@ -94,8 +93,7 @@ template <typename TokenType> class Lexer
       public:
         TokenStream(Lexer& lexer)
             : m_lexer(lexer)
-        {
-        }
+        {}
 
         Iterator begin() { return Iterator(&m_lexer); }
         Iterator end() { return Iterator(); }
@@ -104,7 +102,7 @@ template <typename TokenType> class Lexer
         Lexer& m_lexer;
     };
 
-    TokenStream token_stream(std::string& content)
+    TokenStream token_stream(const std::string& content)
     {
         m_content = content;
         m_contentIt = m_content.cbegin();
@@ -131,17 +129,17 @@ Lexer<TokenType>::Lexer()
     , m_definitions()
     , m_current_col_num(1)
     , m_current_line_num(1)
-{
-}
-template <typename TokenType> Lexer<TokenType>::~Lexer() {}
+{}
+template <typename TokenType>
+Lexer<TokenType>::~Lexer()
+{}
 
 template <typename TokenType>
-void Lexer<TokenType>::define_token(TokenType type,
+void Lexer<TokenType>::define_token(const TokenType type,
                                     const std::string& regex,
-                                    TokenConsumeMode consume_mode)
+                                    bool discard)
 {
-    m_definitions.push_back(
-        TokenDefinition<TokenType>(type, regex, consume_mode));
+    m_definitions.push_back(TokenDefinition<TokenType>(type, regex, discard));
 }
 
 template <typename TokenType>
@@ -190,7 +188,7 @@ std::optional<Token<TokenType>> Lexer<TokenType>::next_token()
 
     m_contentIt += lexeme.size();
 
-    if (bestDefinition->consume_mode == TokenConsumeMode::Discard)
+    if (bestDefinition->discard)
         return next_token();
 
     Token<TokenType> token(bestDefinition->type, lexeme, m_current_line_num,
@@ -251,15 +249,11 @@ Lexer<TokenType>::tokenize(const std::string& input)
             contentIt += lexeme.size();
             col_num += lexeme.size();
 
-            switch (bestDefinition->consume_mode)
-            {
-            case TokenConsumeMode::Consume:
-                tokens.push_back(
-                    Token<TokenType>(bestDefinition->type, lexeme, 0, 0));
-                break;
-            case TokenConsumeMode::Discard:
+            if (bestDefinition->discard)
                 continue;
-            }
+
+            tokens.push_back(
+                Token<TokenType>(bestDefinition->type, lexeme, 0, 0));
         }
 
         line_num++;
@@ -271,7 +265,6 @@ Lexer<TokenType>::tokenize(const std::string& input)
 template <typename TokenType>
 void Lexer<TokenType>::unexpected_token(int line_num, int col_num)
 {
-
     std::string line;
 
     // Use a stringstrem to iterate the content line by line

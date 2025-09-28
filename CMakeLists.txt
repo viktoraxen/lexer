@@ -1,15 +1,22 @@
 cmake_minimum_required(VERSION 3.10)
 
-project(Cpplexer)
+project(lexer)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-add_executable(Cpplexer src/main.cpp)
-target_include_directories(Cpplexer PRIVATE ${CMAKE_SOURCE_DIR}/include)
-target_include_directories(Cpplexer PRIVATE ${CMAKE_SOURCE_DIR}/vendor)
+add_executable(lexer src/main.cpp)
+target_include_directories(lexer PRIVATE ${CMAKE_SOURCE_DIR}/include)
+target_include_directories(lexer PRIVATE ${CMAKE_SOURCE_DIR}/vendor)
+
+# For compatability with cppbuild
+if(NOT EXECUTABLE_OUTPUT_NAME)
+  set(EXECUTABLE_OUTPUT_NAME "lexer")
+endif()
+
+file(WRITE ${CMAKE_BINARY_DIR}/.executable_name "${EXECUTABLE_OUTPUT_NAME}")
 
 # Source and destination directories
 set(RESOURCE_SOURCE_DIR ${CMAKE_SOURCE_DIR}/res)
