@@ -17,9 +17,17 @@ struct Token
 template <typename TokenType>
 struct TokenDefinition
 {
+    TokenDefinition<TokenType>(TokenType type,
+                               const std::string regex,
+                               bool discard = false)
+        : type(type)
+        , regex(std::regex(regex))
+        , discard(discard)
+    {}
+
     TokenType type;
     std::regex regex;
-    bool discard = false;
+    bool discard;
 };
 
 template <typename TokenType>

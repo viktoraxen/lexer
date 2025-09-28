@@ -1,4 +1,5 @@
 #include <cstddef>
+#include <fstream>
 #include <iostream>
 #include <iterator>
 #include <optional>
@@ -12,6 +13,7 @@ class Lexer
 {
   public:
     Lexer();
+    Lexer(std::vector<TokenDefinition<TokenType>> definitions);
     ~Lexer();
 
     std::vector<Token<TokenType>> tokenize(const std::string& input);
@@ -19,12 +21,15 @@ class Lexer
     {
         return tokenize(std::string(input));
     }
+    std::vector<Token<TokenType>> tokenize_file(const char* filepath)
+    {
+        std::ifstream file(filepath);
 
-    std::optional<Token<TokenType>> next_token();
+        std::stringstream buffer;
+        buffer << file.rdbuf();
 
-    void define_token(TokenType type,
-                      const std::string& regex,
-                      bool discard = false);
+        return tokenize(buffer.str());
+    }
 
     class Iterator
     {
@@ -102,7 +107,7 @@ class Lexer
         Lexer& m_lexer;
     };
 
-    TokenStream token_stream(const std::string& content)
+    TokenStream stream(const std::string& content)
     {
         m_content = content;
         m_contentIt = m_content.cbegin();
@@ -110,6 +115,16 @@ class Lexer
         m_current_col_num = 1;
 
         return TokenStream(*this);
+    }
+
+    TokenStream stream_from_file(const std::string& filepath)
+    {
+        std::ifstream file(filepath);
+
+        std::stringstream buffer;
+        buffer << file.rdbuf();
+
+        return stream(buffer.str());
     }
 
   private:
@@ -120,6 +135,8 @@ class Lexer
     std::string::const_iterator m_contentIt;
 
     void unexpected_token(int line_num, int col_num);
+
+    std::optional<Token<TokenType>> next_token();
 };
 
 template <typename TokenType>
@@ -130,21 +147,19 @@ Lexer<TokenType>::Lexer()
     , m_current_col_num(1)
     , m_current_line_num(1)
 {}
+
 template <typename TokenType>
-Lexer<TokenType>::~Lexer()
+Lexer<TokenType>::Lexer(std::vector<TokenDefinition<TokenType>> definitions)
+    : m_content("")
+    , m_contentIt(m_content.cbegin())
+    , m_definitions(definitions)
+    , m_current_col_num(1)
+    , m_current_line_num(1)
 {}
 
 template <typename TokenType>
-void Lexer<TokenType>::define_token(const TokenType type,
-                                    const std::string& regex,
-                                    bool discard)
-{
-    m_definitions.push_back({
-        .type = type,
-        .regex = std::regex(regex),
-        .discard = discard,
-    });
-}
+Lexer<TokenType>::~Lexer()
+{}
 
 template <typename TokenType>
 std::optional<Token<TokenType>> Lexer<TokenType>::next_token()
