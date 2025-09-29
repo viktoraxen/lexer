@@ -33,7 +33,8 @@ struct Token
  *
  * This struct is used to configure the lexer. Each instance defines a rule
  * for matching a specific type of token, including the regular expression
- * to match and whether the token should be kept or discarded (e.g., whitespace).
+ * to match and whether the token should be kept or discarded (e.g.,
+ * whitespace).
  *
  * @tparam TokenType The enum type used for classifying tokens.
  */
@@ -45,7 +46,8 @@ struct TokenDefinition
      *
      * @param type The token type this definition corresponds to.
      * @param regex The regular expression string used to match this token.
-     * @param discard If true, tokens of this type will be ignored by the lexer. Defaults to false.
+     * @param discard If true, tokens of this type will be ignored by the lexer.
+     * Defaults to false.
      */
     TokenDefinition<TokenType>(TokenType type,
                                const std::string regex,
